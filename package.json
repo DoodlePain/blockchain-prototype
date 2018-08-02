@@ -1,10 +1,7 @@
 {
   "name": "blockchain-prototype",
   "version": "1.0.0",
-  "description": "
-Handmade prototype of blockchain to learn how blockchain are made and how does the system work.
-
-booksMade for personal learningbooks",
+  "description": "Handmade prototype of blockchain to learn how blockchain are made and how does the system work.Made for personal learning",
   "main": "./dev/test.js",
   "scripts": {
     "test": "node ./dev/test.js",
