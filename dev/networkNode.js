@@ -161,7 +161,10 @@ app.get('/blockchain', function (req, res) {
       const newNodeUrl = req.body.newNodeUrl;
       const nodeNotAlreadyPresent = Chain.networkNodes.indexOf(newNodeUrl) == -1;
       const notCurrentNode = Chain.currentNodeUrl !== newNodeUrl;
-      if (nodeNotAlreadyPresent && notCurrentNode) Chain.networkNodes.push(newNodeUrl);
+      console.log(Chain.currentNodeUrl + " diverso da " +newNodeUrl);
+      if (nodeNotAlreadyPresent && notCurrentNode && newNodeUrl!== null) {
+        console.log("Pushing : " +newNodeUrl);
+        Chain.networkNodes.push(newNodeUrl);}
       res.json({ note: 'New node registered successfully.' });
   });
   
@@ -172,7 +175,11 @@ app.get('/blockchain', function (req, res) {
       allNetworkNodes.forEach(networkNodeUrl => {
           const nodeNotAlreadyPresent = Chain.networkNodes.indexOf(networkNodeUrl) == -1;
           const notCurrentNode = Chain.currentNodeUrl !== networkNodeUrl;
-          if (nodeNotAlreadyPresent && notCurrentNode) Chain.networkNodes.push(networkNodeUrl);
+          console.log(Chain.currentNodeUrl + " diverso da " +networkNodeUrl);
+          if (nodeNotAlreadyPresent && notCurrentNode && networkNodeUrl!==null) {
+              console.log("Pushing : " +networkNodeUrl);
+              
+              Chain.networkNodes.push(networkNodeUrl)};
       });
   
       res.json({ note: 'Bulk registration successful.' });
