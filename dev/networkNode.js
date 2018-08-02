@@ -2,7 +2,7 @@ var express = require('express')
 const bodyParser = require('body-parser')
 var app = express()
 const Blockchain = require('./blockchain')
-const FrulloCoin = new Blockchain()
+const Chain = new Blockchain()
 const uuid = require('uuid/v1')
 const port = process.argv[2]
 const rp = require('request-promise')
@@ -15,25 +15,25 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 // get entire blockchain
 app.get('/blockchain', function (req, res) {
-    res.send(FrulloCoin);
+    res.send(Chain);
   });
   
   
   // create a new transaction
   app.post('/transaction', function(req, res) {
       const newTransaction = req.body;
-      const blockIndex = FrulloCoin.addTransactionToPendingTransactions(newTransaction);
+      const blockIndex = Chain.addTransactionToPendingTransactions(newTransaction);
       res.json({ note: `Transaction will be added in block ${blockIndex}.` });
   });
   
   
   // broadcast transaction
   app.post('/transaction/broadcast', function(req, res) {
-      const newTransaction = FrulloCoin.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient);
-      FrulloCoin.addTransactionToPendingTransactions(newTransaction);
+      const newTransaction = Chain.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient);
+      Chain.addTransactionToPendingTransactions(newTransaction);
   
       const requestPromises = [];
-      FrulloCoin.networkNodes.forEach(networkNodeUrl => {
+      Chain.networkNodes.forEach(networkNodeUrl => {
           const requestOptions = {
               uri: networkNodeUrl + '/transaction',
               method: 'POST',
@@ -53,18 +53,18 @@ app.get('/blockchain', function (req, res) {
   
   // mine a block
   app.get('/mine', function(req, res) {
-      const lastBlock = FrulloCoin.getLastBlock();
+      const lastBlock = Chain.getLastBlock();
       const previousBlockHash = lastBlock['hash'];
       const currentBlockData = {
-          transactions: FrulloCoin.pendingTransactions,
+          transactions: Chain.pendingTransactions,
           index: lastBlock['index'] + 1
       };
-      const nonce = FrulloCoin.proofOfWork(previousBlockHash, currentBlockData);
-      const blockHash = FrulloCoin.hashBlock(previousBlockHash, currentBlockData, nonce);
-      const newBlock = FrulloCoin.createNewBlock(nonce, previousBlockHash, blockHash);
+      const nonce = Chain.proofOfWork(previousBlockHash, currentBlockData);
+      const blockHash = Chain.hashBlock(previousBlockHash, currentBlockData, nonce);
+      const newBlock = Chain.createNewBlock(nonce, previousBlockHash, blockHash);
   
       const requestPromises = [];
-      FrulloCoin.networkNodes.forEach(networkNodeUrl => {
+      Chain.networkNodes.forEach(networkNodeUrl => {
           const requestOptions = {
               uri: networkNodeUrl + '/receive-new-block',
               method: 'POST',
@@ -78,7 +78,7 @@ app.get('/blockchain', function (req, res) {
       Promise.all(requestPromises)
       .then(data => {
           const requestOptions = {
-              uri: FrulloCoin.currentNodeUrl + '/transaction/broadcast',
+              uri: Chain.currentNodeUrl + '/transaction/broadcast',
               method: 'POST',
               body: {
                   amount: 12.5,
@@ -102,13 +102,13 @@ app.get('/blockchain', function (req, res) {
   // receive new block
   app.post('/receive-new-block', function(req, res) {
       const newBlock = req.body.newBlock;
-      const lastBlock = FrulloCoin.getLastBlock();
+      const lastBlock = Chain.getLastBlock();
       const correctHash = lastBlock.hash === newBlock.previousBlockHash; 
       const correctIndex = lastBlock['index'] + 1 === newBlock['index'];
   
       if (correctHash && correctIndex) {
-          FrulloCoin.chain.push(newBlock);
-          FrulloCoin.pendingTransactions = [];
+          Chain.chain.push(newBlock);
+          Chain.pendingTransactions = [];
           res.json({
               note: 'New block received and accepted.',
               newBlock: newBlock
@@ -125,10 +125,10 @@ app.get('/blockchain', function (req, res) {
   // register a node and broadcast it the network
   app.post('/register-and-broadcast-node', function(req, res) {
       const newNodeUrl = req.body.newNodeUrl;
-      if (FrulloCoin.networkNodes.indexOf(newNodeUrl) == -1) FrulloCoin.networkNodes.push(newNodeUrl);
+      if (Chain.networkNodes.indexOf(newNodeUrl) == -1) Chain.networkNodes.push(newNodeUrl);
   
       const regNodesPromises = [];
-      FrulloCoin.networkNodes.forEach(networkNodeUrl => {
+      Chain.networkNodes.forEach(networkNodeUrl => {
           const requestOptions = {
               uri: networkNodeUrl + '/register-node',
               method: 'POST',
@@ -144,7 +144,7 @@ app.get('/blockchain', function (req, res) {
           const bulkRegisterOptions = {
               uri: newNodeUrl + '/register-nodes-bulk',
               method: 'POST',
-              body: { allNetworkNodes: [ ...FrulloCoin.networkNodes, FrulloCoin.currentNodeUrl ] },
+              body: { allNetworkNodes: [ ...Chain.networkNodes, Chain.currentNodeUrl ] },
               json: true
           };
   
@@ -159,9 +159,9 @@ app.get('/blockchain', function (req, res) {
   // register a node with the network
   app.post('/register-node', function(req, res) {
       const newNodeUrl = req.body.newNodeUrl;
-      const nodeNotAlreadyPresent = FrulloCoin.networkNodes.indexOf(newNodeUrl) == -1;
-      const notCurrentNode = FrulloCoin.currentNodeUrl !== newNodeUrl;
-      if (nodeNotAlreadyPresent && notCurrentNode) FrulloCoin.networkNodes.push(newNodeUrl);
+      const nodeNotAlreadyPresent = Chain.networkNodes.indexOf(newNodeUrl) == -1;
+      const notCurrentNode = Chain.currentNodeUrl !== newNodeUrl;
+      if (nodeNotAlreadyPresent && notCurrentNode) Chain.networkNodes.push(newNodeUrl);
       res.json({ note: 'New node registered successfully.' });
   });
   
@@ -170,9 +170,9 @@ app.get('/blockchain', function (req, res) {
   app.post('/register-nodes-bulk', function(req, res) {
       const allNetworkNodes = req.body.allNetworkNodes;
       allNetworkNodes.forEach(networkNodeUrl => {
-          const nodeNotAlreadyPresent = FrulloCoin.networkNodes.indexOf(networkNodeUrl) == -1;
-          const notCurrentNode = FrulloCoin.currentNodeUrl !== networkNodeUrl;
-          if (nodeNotAlreadyPresent && notCurrentNode) FrulloCoin.networkNodes.push(networkNodeUrl);
+          const nodeNotAlreadyPresent = Chain.networkNodes.indexOf(networkNodeUrl) == -1;
+          const notCurrentNode = Chain.currentNodeUrl !== networkNodeUrl;
+          if (nodeNotAlreadyPresent && notCurrentNode) Chain.networkNodes.push(networkNodeUrl);
       });
   
       res.json({ note: 'Bulk registration successful.' });
@@ -180,7 +180,7 @@ app.get('/blockchain', function (req, res) {
   
   app.get('/consensus',(req,res)=>{
       const requestPromises = []
-      FrulloCoin.networkNodes.forEach(networkNodeUrl => {
+      Chain.networkNodes.forEach(networkNodeUrl => {
           requestOptions = {
               uri: networkNodeUrl + '/blockchain',
               method:'GET',
@@ -191,7 +191,7 @@ app.get('/blockchain', function (req, res) {
 
       Promise.all(requestPromises)
       .then(blockchains => {
-          const currentChainLength = FrulloCoin.chain.length
+          const currentChainLength = Chain.chain.length
           let maxChainLength = currentChainLength
           let newLongestChain = null;
           let newPendingTransactions = null
@@ -203,22 +203,53 @@ app.get('/blockchain', function (req, res) {
               }
           })
 
-          if(!newLongestChain || (newLongestChain && !FrulloCoin.chainIsValid(newLongestChain))){
+          if(!newLongestChain || (newLongestChain && !Chain.chainIsValid(newLongestChain))){
               res.json({
                   note: 'Current chain has not been replaced!',
-                  chain:FrulloCoin.chain
+                  chain:Chain.chain
               })
-          } else if(newLongestChain && FrulloCoin.chainIsValid(newLongestChain)){
-            FrulloCoin.chain = newLongestChain
-            FrulloCoin.pendingTransactions = newPendingTransactions
+          } else if(newLongestChain && Chain.chainIsValid(newLongestChain)){
+            Chain.chain = newLongestChain
+            Chain.pendingTransactions = newPendingTransactions
             res.json({
                 note: "This chain has been replaced",
-                chain: FrulloCoin.chain
+                chain: Chain.chain
             })
           }
       })
   })
- 
+
+app.get('/block/:blockHash', (req,res) => {
+    const blockHash = req.params.blockHash
+    const correctBlock = Chain.getBlock(blockHash)
+    res.json({
+        block: correctBlock
+    })
+})
+
+app.get('/transaction/:transactionId' , (req,res) => {
+    const transactionId = req.params.transactionId
+    const correctTransaction = Chain.getTransaction(transactionId)
+    res.json({
+        transaction: correctTransaction.transaction,
+        block:correctTransaction.block
+    })
+})
+
+app.get('/address/:address' , (req,res) => {
+    const address = req.params.address
+    const addressTransactions = Chain.getAddressData(address)
+    res.json({
+        transactions:addressTransactions.transactions,
+        balance:addressTransactions.balance
+    })
+})
+
+app.get('/block-explorer', (req,res) => {
+    res.sendFile('./BlockExplorer/index.html',{
+        root: __dirname 
+    })
+})
 
 app.listen(port, () => {
     console.log('Listening on port '+ port +'...');

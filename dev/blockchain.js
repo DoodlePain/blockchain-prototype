@@ -49,9 +49,6 @@ class Blockchain {
 
     hashBlock (previousBlockHash,currentBlockData,nonce) {
         const dataAsString = previousBlockHash+nonce.toString() + JSON.stringify(currentBlockData)
-        // console.log(previousBlockHash) 
-        // console.log(nonce.toString())  
-        // console.log(JSON.stringify(currentBlockData))
         const crypted = SHA256(dataAsString)
         return crypted
     }
@@ -78,18 +75,7 @@ class Blockchain {
         const nonce = currentBlock['nonce']
         const blockHash = this.hashBlock(prevBlockHash,currentBlockData, nonce)
         
-        console.log("prevBlockHash " +prevBlockHash);
-        console.log("currentBlockData " +JSON.stringify(currentBlockData));
-        console.log("nonce " +nonce);
-        
-
-        console.log(this.hashBlock(prevBlockHash,currentBlockData, nonce));
-        console.log(this.hashBlock(0,{transaction:[],index:2},16441));
-        
-        
-        
 		if (blockHash.substring(0, 4) !== '0000') validChain = false; 
-        console.log(validChain);
         
 
 		if (currentBlock['previousBlockHash'] !== prevBlock['hash']) validChain = false;
@@ -103,8 +89,56 @@ class Blockchain {
 
 	if (!correctNonce || !correctPreviousBlockHash || !correctHash || !correctTransactions) validChain = false;
 
-    return validChain;
+    return validChain
 }
+
+    getBlock(blockHash) {
+        let correctBlock = null
+        this.chain.forEach(block =>{
+            if(block.hash === blockHash){
+                correctBlock = block
+            }
+        })
+        return correctBlock
+    }
+
+    getTransaction(transactionId){
+        let correctTransaction=null
+        let correctBlock=null
+        this.chain.forEach(block=>{
+            block.transactions.forEach(transaction => {
+                if(transaction.transactionId === transactionId) 
+                {correctTransaction = transaction
+                    correctBlock=block}
+            })
+        })
+        return {transaction:correctTransaction,block:correctBlock}
+    }
+
+    getAddressData(address){
+        const addressTransactions = []
+        this.chain.forEach(block=>{
+            block.transactions.forEach(transaction => {
+                if(transaction.sender === address || transaction.recipient === address){
+                    addressTransactions.push({transaction:transaction, block:block})
+                }
+            })
+        })
+        
+        let balance = 0
+        addressTransactions.forEach((currentTransaction) => {
+            if(currentTransaction.transaction.recipient === address){
+                balance += currentTransaction.transaction.amount
+                console.log(currentTransaction.transaction.amount);
+            } else if (currentTransaction.transaction.sender === address) {
+                balance -= currentTransaction.transaction.amount
+                console.log(currentTransaction.transaction.amount);
+                
+            }
+        })
+
+        return {transactions: addressTransactions, balance:balance}
+    }
 }
     
 module.exports = Blockchain;

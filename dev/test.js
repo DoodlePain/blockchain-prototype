@@ -1,6 +1,6 @@
 const Blockchain = require('./blockchain.js');
 
-const FrulloCoin = new Blockchain();
+const Chain = new Blockchain();
 
 // bitcoin.createNewBlock(2, 'OJSANIA231', 'ANIACN412');
 
@@ -114,4 +114,4 @@ const bc1 = {
     currentNodeUrl: "http://localhost:3001",
     networkNodes: [ ]
     }
-console.log(FrulloCoin.chainIsValid(bc1.chain));
+console.log(Chain.chainIsValid(bc1.chain));
