@@ -58,20 +58,74 @@ app.get('/mine',(req,res) => {
     const blockHash = FrulloCoin.hashBlock(previousBlockHash,currentBlockData,nonce)
 
     FrulloCoin.createNewTransaction(12.5,"00", nodeAddress);
-
+    const reqNodesPromise = []
     const newBlock = FrulloCoin.createNewBlock(nonce,previousBlockHash , blockHash)
-    res.json({
-        "note":"Block mined!",
-        "block":newBlock
+
+    FrulloCoin.networkNodes.forEach(networkNodesUrl => {
+        const requestOptions = {
+            uri:networkNodesUrl + "/receive-new-block",
+            method:'POST',
+            body: {
+                newBlock: newBlock
+            },
+            json:true
+        }
+        reqNodePromises.push(rp(requestOptions));
     })
-    
+
+    Promise.all(reqNodesPromise)
+    .then((data) => {
+        // mining reward!!
+        const requestOptions = {
+            uri:FrulloCoin.currentNodeUrl + '/transaction/broadcast',
+            method: 'POST',
+            body : {
+                amount: 12.5,
+                sender: "00",
+                recipient: nodeAddress
+            },
+            json:true
+        }
+        return rp(requestOptions)
+    })
+    .then((data) => {
+        
+            res.json({
+                "note":"Block mined and broadcasted!",
+                "block":newBlock
+            })
+
+    })
+     
 })
+
+app.post('/receive-new-block',(req,res)=>{
+    const newBlock = req.body.newBlock
+    const lastBlock = FrulloCoin.getLastBlock()
+    const correctHash = lastBlock.hash === newBlock.previousBlockHash
+    const correctIndex = lastBlock['index']+1 === newBlock['index']
+    if(correctHash && correctIndex){
+        FrulloCoin.chain.push(newBlock)
+        FrulloCoin.pendingTransactions = []
+        res.json({
+            note:"Block has been successfully mined, reward emited!",
+            newBlock : newBlock
+        })
+    }
+    else{
+        res.json({
+            note: "New block rejected",
+            newBlock : newBlock
+        })
+    }
+})
+
 
 app.post('/register-and-broadcast-node', function(req, res) {
 	const newNodeUrl = req.body.newNodeUrl;
 	if (FrulloCoin.networkNodes.indexOf(newNodeUrl) == -1) FrulloCoin.networkNodes.push(newNodeUrl);
 
-	const regNodesPromises = [];
+	const reqNodePromises = [];
 	FrulloCoin.networkNodes.forEach(networkNodeUrl => {
 		const requestOptions = {
 			uri: networkNodeUrl + '/register-node',
@@ -80,10 +134,10 @@ app.post('/register-and-broadcast-node', function(req, res) {
 			json: true
 		};
 
-		regNodesPromises.push(rp(requestOptions));
+		reqNodePromises.push(rp(requestOptions));
 	});
 
-	Promise.all(regNodesPromises)
+	Promise.all(reqNodePromises)
 	.then(data => {
 		const bulkRegisterOptions = {
 			uri: newNodeUrl + '/register-nodes-bulk',
