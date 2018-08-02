@@ -6,6 +6,8 @@ const Chain = new Blockchain()
 const uuid = require('uuid/v1')
 const port = process.argv[2]
 const rp = require('request-promise')
+const myIP = require('my-ip');
+const currentNodeUrl = 'http://'+myIP()+':'+process.argv[2]
 
 const nodeAddress = uuid().split('-').join('')
 
@@ -259,6 +261,6 @@ app.get('/block-explorer', (req,res) => {
 })
 
 app.listen(port, () => {
-    console.log('Listening on port '+ port +'...');
+    console.log('Listening on '+ currentNodeUrl +'...');
 })
 
