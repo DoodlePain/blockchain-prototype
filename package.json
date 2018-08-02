@@ -5,6 +5,7 @@
   "main": "./dev/test.js",
   "scripts": {
     "test": "node ./dev/test.js",
+    "start": "node dev/networkNode.js 3001",
     "node_1": "nodemon --watch dev -e js dev/networkNode.js 3001 http://localhost:3001",
     "node_2": "nodemon --watch dev -e js dev/networkNode.js 3002 http://localhost:3002",
     "node_3": "nodemon --watch dev -e js dev/networkNode.js 3003 http://localhost:3003",
