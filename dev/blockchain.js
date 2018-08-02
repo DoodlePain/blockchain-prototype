@@ -1,6 +1,6 @@
 const SHA256 = require('sha256')
 const myIP = require('my-ip');
-const currentNodeUrl = 'http://'+myIP()+':'+process.argv[2]
+const currentNodeUrl = 'http://'+myIP()+':'+(process.env.PORT || process.argv[2])
 const uuid = require('uuid/v1')
 
 
