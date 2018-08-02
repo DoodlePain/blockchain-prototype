@@ -58,7 +58,7 @@ app.get('/mine',(req,res) => {
     const blockHash = FrulloCoin.hashBlock(previousBlockHash,currentBlockData,nonce)
 
     FrulloCoin.createNewTransaction(12.5,"00", nodeAddress);
-    const reqNodesPromise = []
+    const reqNodePromises = []
     const newBlock = FrulloCoin.createNewBlock(nonce,previousBlockHash , blockHash)
 
     FrulloCoin.networkNodes.forEach(networkNodesUrl => {
@@ -73,7 +73,7 @@ app.get('/mine',(req,res) => {
         reqNodePromises.push(rp(requestOptions));
     })
 
-    Promise.all(reqNodesPromise)
+    Promise.all(reqNodePromises)
     .then((data) => {
         // mining reward!!
         const requestOptions = {
